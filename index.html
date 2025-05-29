@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quick Sort Visualizer</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+    <div class="container">
+        <h1>Quick Sort Visualizer</h1>
+
+        <div class="controls">
+            <label for="array-input">Enter numbers (comma-separated):</label>
+            <input type="text" id="array-input" placeholder="e.g., 5,2,8,1,9,4">
+
+            <label for="pivot-strategy">Pivot Strategy:</label>
+            <select id="pivot-strategy">
+                <option value="first">First Element</option>
+                <option value="last">Last Element (common for Lomuto)</option>
+                <option value="random">Random Element</option>
+                <option value="middle">Middle Element</option>
+                <option value="medianOfThree">Median-of-Three</option>
+            </select>
+
+            <button id="start-sort">Start Sort</button>
+            <button id="next-step" disabled>Next Step</button>
+            <button id="auto-play" disabled>Auto Play</button>
+            <button id="reset">Reset</button>
+        </div>
+
+        <div class="visualization-area">
+            <h2>Array Visualization</h2>
+            <div id="array-container">
+                <!-- Array elements will be dynamically added here -->
+            </div>
+            <div id="status-message">Status: Waiting for input...</div>
+        </div>
+
+        <div class="recursion-tree-area">
+            <h2>Recursion Tree</h2>
+            <div id="recursion-tree-container">
+                <!-- Recursion tree T(n) nodes will be here -->
+            </div>
+            <p>Max Recursion Depth: <span id="recursion-depth">0</span></p>
+            <p>Total Function Calls: <span id="function-calls">0</span></p>
+            <p>Cost per Level (Partitioning): Generally O(N) for the current sub-array size N.</p>
+        </div>
+
+        <div class="complexity-info">
+            <h2>Time Complexity</h2>
+            <p>Best Case: O(n log n)</p>
+            <p>Average Case: O(n log n)</p>
+            <p>Worst Case: O(n<sup>2</sup>)</p>
+            <p id="current-pivot-impact">Select a pivot strategy to see its potential impact.</p>
+        </div>
+
+        <div class="quiz-area">
+            <h2>Quick Sort Quiz</h2>
+            <div id="quiz-question"></div>
+            <div id="quiz-options"></div>
+            <button id="submit-answer">Submit Answer</button>
+            <div id="quiz-feedback"></div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+
+</html>

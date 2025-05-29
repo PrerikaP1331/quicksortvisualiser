@@ -1,0 +1,179 @@
+body {
+    font-family: sans-serif;
+    line-height: 1.6;
+    margin: 20px;
+    background-color: #f4f4f4;
+    color: #333;
+}
+
+.container {
+    max-width: 1000px;
+    margin: auto;
+    background: #fff;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+}
+
+.controls,
+.visualization-area,
+.recursion-tree-area,
+.complexity-info,
+.quiz-area {
+    margin-bottom: 20px;
+    padding: 15px;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+}
+
+h1,
+h2 {
+    color: #333;
+    text-align: center;
+    margin-bottom: 15px;
+}
+
+input[type="text"],
+select,
+button {
+    padding: 10px;
+    margin: 5px;
+    border-radius: 5px;
+    border: 1px solid #ccc;
+}
+
+button {
+    background-color: #5cb85c;
+    color: white;
+    cursor: pointer;
+    border: none;
+}
+
+button:hover {
+    background-color: #4cae4c;
+}
+
+button:disabled {
+    background-color: #ccc;
+    cursor: not-allowed;
+}
+
+#array-container {
+    display: flex;
+    justify-content: center;
+    align-items: flex-end;
+    /* For bar chart like view */
+    min-height: 100px;
+    /* Min height for bars */
+    border: 1px solid #eee;
+    padding: 10px;
+    margin-top: 10px;
+    overflow-x: auto;
+}
+
+.array-element {
+    display: inline-flex;
+    /* Changed to inline-flex */
+    align-items: center;
+    /* Vertically center text in bar */
+    justify-content: center;
+    /* Horizontally center text in bar */
+    min-width: 30px;
+    height: 50px;
+    /* Default height, will be overridden by bar height */
+    margin: 0 2px;
+    background-color: steelblue;
+    color: white;
+    text-align: center;
+    padding: 5px;
+    border: 1px solid #333;
+    border-radius: 3px;
+    transition: background-color 0.3s ease, transform 0.3s ease, height 0.3s ease;
+}
+
+.pivot {
+    background-color: crimson !important;
+    font-weight: bold;
+}
+
+.swapping {
+    background-color: orange !important;
+    transform: translateY(-10px);
+    /* Visual cue for swapping */
+}
+
+.comparing {
+    background-color: gold !important;
+    color: #333;
+}
+
+.sorted-partition {
+    /* Elements in their final sorted place within a partition */
+    background-color: mediumseagreen !important;
+}
+
+.sub-array {
+    /* Highlight the current sub-array being processed */
+    border: 2px dashed blue !important;
+}
+
+#status-message {
+    margin-top: 10px;
+    text-align: center;
+    font-style: italic;
+}
+
+#recursion-tree-container {
+    padding: 10px;
+    border: 1px dashed #ccc;
+    min-height: 50px;
+    font-size: 0.9em;
+}
+
+.tree-node {
+    margin-left: 20px;
+    padding: 5px;
+    border-left: 1px solid #aaa;
+    position: relative;
+}
+
+.tree-node::before {
+    content: '';
+    position: absolute;
+    top: 12px;
+    /* Adjust to align with text */
+    left: -10px;
+    width: 10px;
+    height: 1px;
+    background-color: #aaa;
+}
+
+.tree-node.active-call>.node-label {
+    font-weight: bold;
+    color: dodgerblue;
+}
+
+.node-label {
+    background-color: #f0f0f0;
+    padding: 2px 5px;
+    border-radius: 3px;
+    display: inline-block;
+}
+
+
+/* Quiz Styling */
+#quiz-options button {
+    display: block;
+    margin: 5px 0;
+    background-color: #f0f0f0;
+    color: #333;
+}
+
+#quiz-options button:hover {
+    background-color: #e0e0e0;
+}
+
+#quiz-feedback {
+    margin-top: 10px;
+    font-weight: bold;
+}
