@@ -14,6 +14,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const recursionDepthSpan = document.getElementById('recursion-depth');
     const functionCallsSpan = document.getElementById('function-calls');
     const currentPivotImpactP = document.getElementById('current-pivot-impact');
+    const observedPerformanceTendencyP = document.getElementById('observed-performance-tendency'); // NEW
 
     // Quiz Elements
     const quizQuestionDiv = document.getElementById('quiz-question');
@@ -22,6 +23,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const quizFeedbackDiv = document.getElementById('quiz-feedback');
 
     // State Variables
+    let initialUnsortedArray = []; // To store the array as it was before sorting for analysis
     let originalArray = [];
     let workingArray = [];
     let animationSteps = [];
@@ -38,12 +40,10 @@ document.addEventListener('DOMContentLoaded', () => {
     function displayArray(arrToDisplay = workingArray, highlights = {}) {
         arrayContainer.innerHTML = '';
         if (!arrToDisplay) {
-            // console.warn("displayArray called with null/undefined arrToDisplay");
             return;
         }
         if (arrToDisplay.length === 0) {
-            // console.log("displayArray: No array or empty array to display.");
-            arrayContainer.innerHTML = '<div>(Array is empty)</div>'; // Visual feedback for empty array
+            arrayContainer.innerHTML = '<div>(Array is empty)</div>';
             return;
         }
 
@@ -54,17 +54,11 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
-        // Determine a sensible maxValue for scaling bar heights
-        // This handles all-zero, all-negative, mixed arrays.
-        let visualScalingMax = 1; // Default to 1 to avoid division by zero if all values are <= 0 or array is empty
+        let visualScalingMax = 1;
         if (valuesOnly.length > 0) {
             const maxInArray = Math.max(...valuesOnly);
             if (maxInArray > 0) {
                 visualScalingMax = maxInArray;
-            } else {
-                // If all values are <= 0, we still use 1 to give them a base height without scaling.
-                // Or, you could scale based on Math.abs(Math.min(...valuesOnly)) if you want negative bars to have proportional height.
-                // For this visualizer, let's keep it simple: positive values scale, others get base height.
             }
         }
 
@@ -80,12 +74,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 barHeightRatio = value / visualScalingMax;
             }
 
-            const minElementHeight = 20; // px, ensures text is visible
-            const scalableHeightRange = 80; // px, additional height based on value ratio
+            const minElementHeight = 20;
+            const scalableHeightRange = 80;
 
             elementDiv.style.height = `${minElementHeight + (barHeightRatio * scalableHeightRange)}px`;
 
-            // Apply highlights
             if (highlights.pivot === index) elementDiv.classList.add('pivot');
             if (highlights.comparing && highlights.comparing.includes(index)) elementDiv.classList.add('comparing');
             if (highlights.swapping && highlights.swapping.includes(index)) elementDiv.classList.add('swapping');
@@ -107,6 +100,7 @@ document.addEventListener('DOMContentLoaded', () => {
     function resetVisualization() {
         clearInterval(autoPlayInterval);
         autoPlayInterval = null;
+        initialUnsortedArray = []; // NEW
         originalArray = [];
         workingArray = [];
         animationSteps = [];
@@ -121,6 +115,7 @@ document.addEventListener('DOMContentLoaded', () => {
         updateStatus('Waiting for input...');
         recursionDepthSpan.textContent = '0';
         functionCallsSpan.textContent = '0';
+        observedPerformanceTendencyP.textContent = ''; // NEW: Clear observed performance
         startSortButton.disabled = false;
         nextStepButton.disabled = true;
         autoPlayButton.disabled = true;
@@ -136,40 +131,37 @@ document.addEventListener('DOMContentLoaded', () => {
             alert('Please enter an array of numbers.');
             return;
         }
-        originalArray = inputText.split(',')
+        // Parse for initialUnsortedArray and originalArray BEFORE resetVisualization clears them
+        const parsedArray = inputText.split(',')
             .map(numStr => parseInt(numStr.trim(), 10))
             .filter(num => !isNaN(num));
 
-        if (originalArray.length === 0) {
+        if (parsedArray.length === 0) {
             alert('Invalid input or no numbers entered. Please enter comma-separated numbers.');
             return;
         }
 
-        // Call resetVisualization *before* setting new originalArray/workingArray if you want
-        // to keep them for the reset call itself. Or ensure reset clears everything.
-        // The current resetVisualization clears these, so it's fine.
-        resetVisualization();
+        resetVisualization(); // Resets all state variables
 
-        // Set up for the new sort
-        originalArray = inputText.split(',') // Re-parse because resetVisualization clears it
-            .map(numStr => parseInt(numStr.trim(), 10))
-            .filter(num => !isNaN(num));
+        // Now assign the parsed array to the state variables
+        initialUnsortedArray = parsedArray.slice(); // Store the true original for analysis
+        originalArray = parsedArray.slice();
         workingArray = originalArray.slice();
 
 
         updateStatus('Initializing Quick Sort...');
-        prepareQuickSort(); // This will populate animationSteps and the recursion tree structure
+        prepareQuickSort();
 
         startSortButton.disabled = true;
         if (animationSteps.length > 0) {
             nextStepButton.disabled = false;
             autoPlayButton.disabled = false;
-        } else { // e.g. empty or single element array might have very few steps
+        } else {
             nextStepButton.disabled = true;
             autoPlayButton.disabled = true;
         }
 
-        displayArray(workingArray); // Display initial state of the array to be sorted
+        displayArray(workingArray);
     });
 
     nextStepButton.addEventListener('click', () => {
@@ -181,17 +173,17 @@ document.addEventListener('DOMContentLoaded', () => {
             clearInterval(autoPlayInterval);
             autoPlayInterval = null;
             autoPlayButton.textContent = 'Auto Play';
-            if (currentStepIndex < animationSteps.length) { // Only update if not finished
+            if (currentStepIndex < animationSteps.length) {
                 updateStatus('Auto play paused.');
             }
         } else {
             autoPlayButton.textContent = 'Pause';
             updateStatus('Auto playing...');
-            executeNextStep(); // Execute one step immediately
-            if (currentStepIndex < animationSteps.length) { // Check if more steps exist
+            executeNextStep();
+            if (currentStepIndex < animationSteps.length) {
                 autoPlayInterval = setInterval(executeNextStep, autoPlaySpeed);
             } else {
-                autoPlayButton.textContent = 'Auto Play'; // Already finished
+                autoPlayButton.textContent = 'Auto Play';
             }
         }
     });
@@ -200,7 +192,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     pivotStrategySelect.addEventListener('change', () => {
         const strategy = pivotStrategySelect.value;
-        // ... (pivot impact messages remain the same)
         if (strategy === "medianOfThree") {
             currentPivotImpactP.textContent = "Median-of-Three: Good for avoiding worst-case on sorted/nearly sorted data. Adds slight overhead.";
         } else if (strategy === "random") {
@@ -215,12 +206,64 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- Quick Sort Core Logic (modified for visualization) ---
 
+    // NEW: Helper to check if an array is sorted
+    function isArraySorted(arr) {
+        if (arr.length < 2) return true;
+        for (let i = 0; i < arr.length - 1; i++) {
+            if (arr[i] > arr[i + 1]) return false;
+        }
+        return true;
+    }
+
+    // NEW: Helper to check if an array is reverse sorted
+    function isArrayReverseSorted(arr) {
+        if (arr.length < 2) return true;
+        for (let i = 0; i < arr.length - 1; i++) {
+            if (arr[i] < arr[i + 1]) return false;
+        }
+        return true;
+    }
+
+    // NEW: Analyze performance and display tendency
+    function analyzeAndDisplayPerformanceTendency() {
+        const n = initialUnsortedArray.length;
+        if (n === 0) {
+            observedPerformanceTendencyP.textContent = '';
+            return;
+        }
+
+        let tendencyMessage = "Average Case O(n log n)"; // Default
+        const currentPivotStrategy = pivotStrategySelect.value;
+
+        // Check for known worst-case triggers
+        if ((currentPivotStrategy === 'first' || currentPivotStrategy === 'last') && n > 2) {
+            if (isArraySorted(initialUnsortedArray) || isArrayReverseSorted(initialUnsortedArray)) {
+                tendencyMessage = "Worst Case O(n²)";
+            }
+        }
+
+        // Heuristics based on recursion depth and function calls
+        // These are approximate and may need tuning
+        if (tendencyMessage !== "Worst Case O(n²)") { // Only if not already determined as worst
+            const log_n = n > 1 ? Math.log2(n) : 1;
+            if (n > 5 && maxRecursionDepth >= n - 2) { // Very deep recursion
+                tendencyMessage = "Worst Case O(n²)";
+            } else if (n > 10 && maxRecursionDepth > log_n * 3) { // Significantly deeper than log N
+                tendencyMessage = "Leaning towards Worst Case O(n²) due to unbalanced partitions.";
+            } else if (currentPivotStrategy === 'random' || currentPivotStrategy === 'medianOfThree') {
+                tendencyMessage = "Best/Average Case O(n log n) (expected with this pivot strategy)";
+            }
+        }
+        observedPerformanceTendencyP.textContent = `Observed Performance Tendency: ${tendencyMessage}`;
+    }
+
+
     function prepareQuickSort() {
         animationSteps = [];
         functionCalls = 0;
         maxRecursionDepth = 0;
 
-        const arrayForSorting = workingArray.slice(); // Use a copy for step generation
+        const arrayForSorting = workingArray.slice();
 
         currentRecursionTreeRoot = {
             id: `call-${functionCalls}`,
@@ -234,10 +277,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
         quickSortRecursive(arrayForSorting, 0, arrayForSorting.length - 1, 0, currentRecursionTreeRoot);
 
-        // Add the final sorted state to the 'sort_complete' step if array was modified
-        let finalArrayState = workingArray.slice(); // Default to initial if no sorting happened
+        let finalArrayState = workingArray.slice();
         if (animationSteps.length > 0) {
-            // Find the last step that had an arrayState, which should be the sorted one
             for (let i = animationSteps.length - 1; i >= 0; i--) {
                 if (animationSteps[i].arrayState) {
                     finalArrayState = animationSteps[i].arrayState;
@@ -251,6 +292,8 @@ document.addEventListener('DOMContentLoaded', () => {
         recursionDepthSpan.textContent = maxRecursionDepth;
         functionCallsSpan.textContent = functionCalls;
         renderRecursionTree(currentRecursionTreeRoot, recursionTreeContainer);
+
+        analyzeAndDisplayPerformanceTendency(); // NEW: Call analysis here
     }
 
     function quickSortRecursive(arr, low, high, depth, parentTreeNode) {
@@ -282,7 +325,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (leftChildTreeNode) parentTreeNode.children.push(leftChildTreeNode);
 
             const rightChildTreeNode = (pi + 1 <= high) ? {
-                id: `call-${functionCalls + (leftChildTreeNode ? 1 : 0)}`,
+                id: `call-${functionCalls + (leftChildTreeNode ? 1 : 0)}`, // Ensure unique ID
                 label: `T(${rightSize})`,
                 low: pi + 1, high: high,
                 depth: depth + 1,
@@ -308,7 +351,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 arrayState: arr.slice()
             });
 
-        } else if (low === high && low >= 0 && low < arr.length) { // Single element is "sorted" in its partition
+        } else if (low === high && low >= 0 && low < arr.length) {
             animationSteps.push({
                 type: 'partition_complete',
                 low, high,
@@ -336,26 +379,29 @@ document.addEventListener('DOMContentLoaded', () => {
         } else if (pivotStrategy === 'middle') {
             pivotIndex = Math.floor((low + high) / 2);
         } else if (pivotStrategy === 'medianOfThree') {
-            if (high - low + 1 < 3) {
-                pivotIndex = low;
+            if (high - low + 1 < 3) { // If less than 3 elements, default to 'first' or 'last' for simplicity
+                pivotIndex = low; // Or high, depends on preference for small arrays
             } else {
                 const mid = Math.floor((low + high) / 2);
-                animationSteps.push({ type: 'compare_pivot_candidates', indices: [low, mid, high], low, high, arrayState: arr.slice() });
-                // Simplified: find median of arr[low], arr[mid], arr[high]
-                const candidates = [{ val: arr[low], idx: low }, { val: arr[mid], idx: mid }, { val: arr[high], idx: high }];
+                animationSteps.push({ type: 'compare_pivot_candidates', indices: [low, mid, high].sort((a, b) => a - b), low, high, arrayState: arr.slice() });
+                const candidates = [
+                    { val: arr[low], idx: low },
+                    { val: arr[mid], idx: mid },
+                    { val: arr[high], idx: high }
+                ];
                 candidates.sort((a, b) => a.val - b.val);
-                pivotIndex = candidates[1].idx; // Index of the median value
+                pivotIndex = candidates[1].idx;
             }
         }
         pivotValue = arr[pivotIndex];
         animationSteps.push({ type: 'pivot_selected', index: pivotIndex, value: pivotValue, low, high, arrayState: arr.slice() });
 
-        if (pivotIndex !== high) { // Move pivot to end for Lomuto-like partitioning
-            animationSteps.push({ type: 'swap_details', indices: [pivotIndex, high], arrayState: arr.slice(), message: `Moving pivot ${arr[pivotIndex]} to end.` });
+        if (pivotIndex !== high) {
+            animationSteps.push({ type: 'swap_details', indices: [pivotIndex, high], arrayState: arr.slice(), message: `Moving pivot ${arr[pivotIndex]} (at index ${pivotIndex}) to end.` });
             [arr[pivotIndex], arr[high]] = [arr[high], arr[pivotIndex]];
             animationSteps.push({ type: 'after_swap', arrayState: arr.slice(), low, high });
         }
-        pivotValue = arr[high];
+        pivotValue = arr[high]; // Pivot value is now definitely from arr[high]
 
         let i = low - 1;
 
@@ -390,7 +436,6 @@ document.addEventListener('DOMContentLoaded', () => {
             autoPlayButton.textContent = 'Auto Play';
             autoPlayButton.disabled = true;
             nextStepButton.disabled = true;
-            // Display final sorted array if workingArray is populated
             if (workingArray && workingArray.length > 0) {
                 displayArray(workingArray, { sortedPartition: workingArray.map((_, idx) => idx) });
             }
@@ -399,8 +444,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const step = animationSteps[currentStepIndex];
         let highlights = {};
-        // Always use the arrayState from the step for display consistency.
-        // The global workingArray will be updated after this step if it's a state-changing step.
         let arrayToDisplay = step.arrayState ? step.arrayState.slice() : workingArray.slice();
 
 
@@ -410,7 +453,6 @@ document.addEventListener('DOMContentLoaded', () => {
             if (activeNodeEl) activeNodeEl.classList.add('active-call');
         }
 
-        // Define subArray for highlighting if available in the step
         if (typeof step.low === 'number' && typeof step.high === 'number') {
             highlights.subArray = { low: step.low, high: step.high };
         }
@@ -421,9 +463,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 break;
             case 'pivot_selected':
                 updateStatus(`Pivot selected: ${step.value} (index ${step.index}) for arr[${step.low}..${step.high}]`);
-                highlights.pivot = step.index; // Original index of pivot before potential move
-                // If pivot was moved to high for partitioning, highlight arr[high] during partition
-                // For this step, highlight its original position.
+                highlights.pivot = step.index;
                 break;
             case 'compare_pivot_candidates':
                 updateStatus(`Comparing median-of-three candidates: ${step.indices.map(i => arrayToDisplay[i]).join(', ')}`);
@@ -431,8 +471,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 break;
             case 'compare':
                 updateStatus(`Comparing ${arrayToDisplay[step.indices[0]]} with pivot ${arrayToDisplay[step.indices[1]]}`);
-                highlights.comparing = [step.indices[0]]; // Element being compared
-                highlights.pivot = step.indices[1]; // Pivot element (usually at 'high' end during Lomuto)
+                highlights.comparing = [step.indices[0]];
+                highlights.pivot = step.indices[1];
                 break;
             case 'swap_details':
                 updateStatus(step.message || `Swapping elements at indices ${step.indices[0]} and ${step.indices[1]}`);
@@ -440,16 +480,14 @@ document.addEventListener('DOMContentLoaded', () => {
                 break;
             case 'after_swap':
                 updateStatus('Swap complete.');
-                // Display is based on step.arrayState which is *after* the swap
                 break;
             case 'pivot_placed':
                 updateStatus(`Pivot ${arrayToDisplay[step.index]} placed at index ${step.index}.`);
                 highlights.pivot = step.index;
-                highlights.sortedPartition = [step.index]; // Mark pivot as "locally" sorted
+                highlights.sortedPartition = [step.index];
                 break;
             case 'recursive_call_start':
                 updateStatus(`Recursive call for arr[${step.low}..${step.high}], depth ${step.depth}`);
-                // subArray highlight already set
                 break;
             case 'recursive_call_end':
                 updateStatus(`Returning from call for arr[${step.low}..${step.high}]`);
@@ -461,18 +499,17 @@ document.addEventListener('DOMContentLoaded', () => {
                 break;
             case 'sort_complete':
                 updateStatus(step.message);
-                highlights.sortedPartition = arrayToDisplay.map((_, idx) => idx); // All sorted
+                highlights.sortedPartition = arrayToDisplay.map((_, idx) => idx);
                 if (autoPlayInterval) clearInterval(autoPlayInterval);
                 autoPlayButton.textContent = 'Auto Play';
                 autoPlayButton.disabled = true;
                 nextStepButton.disabled = true;
+                // The observed performance is set in prepareQuickSort, so it should be visible
                 break;
         }
 
         displayArray(arrayToDisplay, highlights);
 
-        // Update global workingArray to reflect the state shown in this step
-        // This is important for the final 'sort_complete' display and if user pauses.
         if (step.arrayState) {
             workingArray = step.arrayState.slice();
         }
@@ -483,7 +520,6 @@ document.addEventListener('DOMContentLoaded', () => {
             autoPlayButton.textContent = 'Auto Play';
             autoPlayButton.disabled = true;
             nextStepButton.disabled = true;
-            // Final status already set by 'sort_complete' or if loop finishes here
         }
     }
 
@@ -502,10 +538,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function buildTreeDOM(treeNode, parentUlElement) {
         if (!treeNode || (typeof treeNode.cost === 'number' && treeNode.cost <= 0 && treeNode.label !== `T(0)` && treeNode.label !== `T(1)`)) {
-            // Don't render T(0) nodes explicitly unless it's the root of a very small array.
-            // Allow T(1) as it's a base case that does exist.
-            // Cost check is primary.
-            if (treeNode.label === 'T(0)') return; // Usually don't show T(0)
+            if (treeNode.label === 'T(0)') return;
         }
 
 
@@ -534,7 +567,7 @@ document.addEventListener('DOMContentLoaded', () => {
             childrenUl.style.listStyleType = 'none';
             childrenUl.style.paddingLeft = '20px';
             treeNode.children.forEach(childNode => {
-                if (childNode.cost > 0 || childNode.label === 'T(1)') { // Filter out T(0) children here too
+                if (childNode && (childNode.cost > 0 || childNode.label === 'T(1)')) {
                     buildTreeDOM(childNode, childrenUl);
                 }
             });
@@ -547,7 +580,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- Quiz Mode ---
     const quizData = [
-        // ... (quizData remains the same)
         {
             question: "What is the worst-case time complexity of Quick Sort?",
             options: ["O(n log n)", "O(n)", "O(n^2)", "O(log n)"],
@@ -599,10 +631,12 @@ document.addEventListener('DOMContentLoaded', () => {
             button.textContent = option;
             button.onclick = () => {
                 quizOptionsDiv.querySelectorAll('button').forEach(btn => {
-                    btn.style.backgroundColor = '#f0f0f0';
+                    btn.style.backgroundColor = '#f0f0f0'; // Reset previous selection
+                    btn.style.color = '#333';
                     delete btn.dataset.selected;
                 });
-                button.style.backgroundColor = '#a0c4ff';
+                button.style.backgroundColor = '#a0c4ff'; // Highlight selected
+                button.style.color = '#000';
                 button.dataset.selected = "true";
             };
             quizOptionsDiv.appendChild(button);
@@ -631,23 +665,29 @@ document.addEventListener('DOMContentLoaded', () => {
             quizFeedbackDiv.style.color = "red";
         }
 
-        selectedOptionButton.removeAttribute('data-selected');
-        // Disable options after answering
-        quizOptionsDiv.querySelectorAll('button').forEach(btn => btn.disabled = true);
+        // Disable options after answering and show correct/incorrect styling
+        quizOptionsDiv.querySelectorAll('button').forEach(btn => {
+            btn.disabled = true;
+            if (btn.textContent === correctAnswer) {
+                btn.style.backgroundColor = 'lightgreen'; // Correct answer
+            } else if (btn.dataset.selected === "true" && btn.textContent !== correctAnswer) {
+                btn.style.backgroundColor = 'lightcoral'; // Incorrectly selected answer
+            }
+        });
 
 
         setTimeout(() => {
-            quizOptionsDiv.querySelectorAll('button').forEach(btn => btn.disabled = false); // Re-enable for next Q
+            quizOptionsDiv.querySelectorAll('button').forEach(btn => btn.disabled = false);
             loadQuizQuestion();
-        }, 1500);
+        }, 2000); // Increased delay to see feedback
     });
 
     function resetQuiz() {
         currentQuizQuestionIndex = -1;
         score = 0;
         quizFeedbackDiv.textContent = '';
-        quizOptionsDiv.innerHTML = ''; // Clear any old buttons like "Restart Quiz"
-        submitAnswerButton.style.display = 'inline-block'; // Ensure it's visible
+        quizOptionsDiv.innerHTML = '';
+        submitAnswerButton.style.display = 'inline-block';
         loadQuizQuestion();
     }
 
